@@ -3,12 +3,16 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
+import joblib
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-MODEL_PATH = "./artifacts/final_cat_model.cbm"
+LGBM_MODEL_PATH = "./artifacts/lgbm_model_jl.pkl"
+CATBOOST_MODEL_PATH = "./artifacts/catboost_model.cbm"
 catboost_model: Optional[CatBoostClassifier] = None
+lgbm_model: Optional[LGBMClassifier] = None
 
 
 class CatboostRequest(BaseModel):
@@ -26,10 +30,13 @@ class CatboostRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global catboost_model
-    model = CatBoostClassifier()
-    model.load_model(MODEL_PATH)
-    catboost_model = model
+    # global catboost_model
+    # model = CatBoostClassifier()
+    # model.load_model(CATBOOST_MODEL_PATH)
+    # catboost_model = model
+
+    global lgbm_model
+    lgbm_model = joblib.load(LGBM_MODEL_PATH)
     yield
 
 
@@ -43,17 +50,19 @@ def health():
 
 @app.post("/get_prediction")
 def get_prediction(prediction_features: CatboostRequest):
-    if catboost_model is None:
+    # if catboost_model is None:
+    if lgbm_model is None:
         raise HTTPException(status_code=503, detail="Model is not loaded")
 
     features = prediction_features.model_dump()
     features["Annual_Premium_log"] = np.log1p(features["Annual_Premium"])
 
     df = pd.DataFrame(data=[features])
-    pred_p = catboost_model.predict_proba(X=df)
+    # pred_p = catboost_model.predict_proba(X=df)
+    pred_p = lgbm_model.predict_proba(X=df)
     surv_prob = float(pred_p[0][1])
 
     return {
         "probability": surv_prob,
-        "label": "Will respond" if surv_prob >= 0.7 else "Will not respond",
+        "label": "Will respond" if surv_prob >= 0.24528510587877086 else "Will not respond",
     }
