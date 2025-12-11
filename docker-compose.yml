@@ -1,0 +1,29 @@
+x-app-base: &app-base
+  build: .
+  image: ml-itmo:latest
+  volumes:
+    - .:/app
+
+services:
+  backend:
+    <<: *app-base
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    <<: *app-base
+    command: streamlit run streamlit_test.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: "http://backend:8000/get_prediction"
+    depends_on:
+      backend:
+        condition: service_healthy
