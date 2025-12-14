@@ -5,7 +5,23 @@ import os
 import requests
 from catboost import CatBoostClassifier
 
-st.title('Insurance response')
+# Загрузка CSS из файла
+def load_css():
+    css_file = "style.css"  
+    if os.path.exists(css_file):
+        with open(css_file, 'r', encoding='utf-8') as f:
+            css = f.read()
+            st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+    else:
+        st.warning(f"Файл {css_file} не найден")
+
+load_css()
+
+st.title('Insurance response', anchor = False) # anchor - гиперссылка справа от текста, из-за неё не центрировалось нормально
+
+left, center, right = st.columns([1, 2, 1])
+with center:
+    st.text('Our model predicts whether the client will or will not respond positively to a car insurance offer')
 
 MODEL_PATH = './artifacts/final_cat_model.cbm'
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000/get_prediction")
@@ -143,32 +159,63 @@ if 'catboost_model' not in st.session_state:
     catboost_model.load_model(MODEL_PATH)
     st.session_state.catboost_model = catboost_model
 
-st.selectbox(label="Gender", options=st.session_state.gender_options, key='gender')
+# Раздел с информацией о человеке
+st.markdown("### 📊 Personal Information")
 
-st.number_input(label="Age", min_value=0, max_value=120, value=36, step=1, key='age')
+basic_info_cols = st.columns(3)
 
-st.selectbox(label="Driving license", options=st.session_state.bool_options, key='driving_license')
+with basic_info_cols[0]:
+    st.selectbox(label="Gender", options=st.session_state.gender_options, key='gender')
+    
+with basic_info_cols[1]:
+    st.number_input(label="Age", min_value=0, max_value=120, value=36, step=1, key='age')
 
-region_code_raw = st.number_input(label="Region code", min_value=0.0, max_value=52.0, value=26.0, step=1.0, format="%.0f", key='region_code')
+with basic_info_cols[2]:
+    st.selectbox(label="Driving license", options=st.session_state.bool_options, key='driving_license')
 
-st.selectbox(label="Previously insured", options=st.session_state.bool_options, key='previously_insured')
+# Раздел с информацией о машине
+st.text("")
+st.markdown("### 🚗 Vehicle Details")
 
-st.selectbox(label="Vehicle age", options=['< 1 Year', '1-2 Year', '> 2 Years'], key='vehicle_age')
+vehicle_info_cols = st.columns(3)
 
-st.selectbox(label="Vehicle damage", options=st.session_state.bool_options, key='vehicle_damage')
+with vehicle_info_cols[0]:
+    region_code_raw = st.number_input(label="Region code", min_value=0.0, max_value=52.0, value=26.0, step=1.0, format="%.0f", key='region_code')
+    
+with vehicle_info_cols[1]:
+    st.selectbox(label="Vehicle age", options=['< 1 Year', '1-2 Year', '> 2 Years'], key='vehicle_age')
 
-st.number_input(label="Annual premium", min_value=0.0, value=2630.0, step=0.1, key='annual_premium')
+with vehicle_info_cols[2]:
+    st.number_input(label="Vintage", min_value=10, max_value=299, value=187, step=1, key='vintage')
 
+# Раздел с информацией о страховке  
+st.text("")
+st.markdown("### 🏢 Insurance Information")
+
+vehicle_info_cols = st.columns(3)
+
+with vehicle_info_cols[0]:
+    st.selectbox(label="Previously insured", options=st.session_state.bool_options, key='previously_insured')
+    
+with vehicle_info_cols[1]:
+    st.selectbox(label="Vehicle damage", options=st.session_state.bool_options, key='vehicle_damage')
+
+with vehicle_info_cols[2]:
+    st.number_input(label="Annual premium", min_value=0.0, value=2630.0, step=0.1, key='annual_premium')
+ 
 policy_sales_channel_raw = st.number_input(label="Policy sales channel", min_value=0.0, max_value=163.0, value=152.0, step=1.0, format="%.0f", key='policy_sales_channel')
 
-st.number_input(label="Vintage", min_value=10, max_value=299, value=187, step=1, key='vintage')
+st.text("")
 
-if st.button(label='Get prediction', key='get_pred'):
-    with st.spinner("Wait for it..."):
-        region_code_value = _int_like_to_float(region_code_raw, "Region code")
-        policy_sales_channel_value = _int_like_to_float(policy_sales_channel_raw, "Policy sales channel")
-        prediction = predict(model=st.session_state.catboost_model, gender=st.session_state.gender, age=st.session_state.age,
-                             driving_license=st.session_state.driving_license, region_code=region_code_value, previously_insured=st.session_state.previously_insured,
-                             vehicle_age=st.session_state.vehicle_age, vehicle_damage=st.session_state.vehicle_damage, annual_premium=st.session_state.annual_premium,
-                             policy_sales_channel=policy_sales_channel_value, vintage=st.session_state.vintage)
-    st.success(prediction)
+# Кнопка для получения предсказания
+left, center, right = st.columns(3)
+with center:
+    if st.button(label='Get prediction', key='get_pred', width="stretch"):
+        with st.spinner("Wait for it..."):
+            region_code_value = _int_like_to_float(region_code_raw, "Region code")
+            policy_sales_channel_value = _int_like_to_float(policy_sales_channel_raw, "Policy sales channel")
+            prediction = predict(model=st.session_state.catboost_model, gender=st.session_state.gender, age=st.session_state.age,
+                                driving_license=st.session_state.driving_license, region_code=region_code_value, previously_insured=st.session_state.previously_insured,
+                                vehicle_age=st.session_state.vehicle_age, vehicle_damage=st.session_state.vehicle_damage, annual_premium=st.session_state.annual_premium,
+                                policy_sales_channel=policy_sales_channel_value, vintage=st.session_state.vintage)
+        st.success(prediction)
