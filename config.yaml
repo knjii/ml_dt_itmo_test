@@ -1,0 +1,13 @@
+lgbm_model_path: "artifacts/lgbm_model_jl.pkl"
+
+using_docker: True
+
+using_server: False
+
+backend_predict_url_docker: "http://backend:8000/predict"
+
+backend_predict_url_local: "http://127.0.0.1:8000/predict"
+
+backend_predict_url_server: "http://178.72.139.103:8000/predict"
+
+train_dataset_path: "train.csv"
