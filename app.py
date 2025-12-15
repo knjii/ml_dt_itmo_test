@@ -1,5 +1,4 @@
 # app.py
-import os
 import numpy as np
 import pandas as pd
 import joblib
@@ -7,10 +6,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 import uvicorn
 from contextlib import asynccontextmanager
+import yaml
 
-# Путь к модели
-script_dir = os.path.dirname(os.path.abspath(__file__))
-LGBM_MODEL_PATH = "artifacts/lgbm_model_jl.pkl"
+with open('config.yaml', 'r') as f:
+    config = yaml.load(f, Loader=yaml.SafeLoader)
+
+
+LGBM_MODEL_PATH = config['lgbm_model_path']
 
 # Глобальные переменные
 model = None
@@ -28,8 +30,8 @@ async def lifespan(app: FastAPI):
             feature_cols = [
                 'Gender', 'Age', 'Driving_License', 'Region_Code',
                 'Previously_Insured', 'Vehicle_Age', 'Vehicle_Damage',
-                'Annual_Premium', 'Policy_Sales_Channel', 'Vintage',
-                'Annual_Premium_log'
+                'Annual_Premium', 'Policy_Sales_Channel', 'Vintage'
+                # 'Annual_Premium_log'
             ]
     except Exception as e:
         print(f"Ошибка загрузки модели: {e}")
@@ -132,12 +134,8 @@ async def predict(data: InsuranceRequest):
     
     try:
         input_dict = data.model_dump()
-        input_df = pd.DataFrame([input_dict])
+        input_df = pd.DataFrame([input_dict], columns=feature_cols)
         input_df["Annual_Premium_log"] = np.log1p(input_df["Annual_Premium"])
-        
-        if feature_cols:
-            common_cols = [col for col in feature_cols if col in input_df.columns]
-            input_df = input_df[common_cols]
         
         prediction_p = model.predict_proba(X=input_df)
         positive_prob = float(prediction_p[0][1])

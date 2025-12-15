@@ -1,8 +1,18 @@
 import streamlit as st
 import requests
 import os
+import yaml
 
-BACKEND_URL = "http://127.0.0.1:8000/predict"
+with open('config.yaml', 'r') as f:
+    config = yaml.load(f, Loader=yaml.SafeLoader)
+
+if config['using_docker']:
+    BACKEND_PREDICT_URL = config['backend_predict_url_docker']
+else:
+    if config['using_server']:
+        BACKEND_PREDICT_URL = config['backend_predict_url_server']
+    else:
+        BACKEND_PREDICT_URL = config['backend_predict_url_local']
 
 def load_css():
     css_file = "style.css"  
@@ -42,7 +52,7 @@ def predict(gender=None, age=None,
         'Vintage': vintage
     }
 
-    resp = requests.post(BACKEND_URL, json=payload)
+    resp = requests.post(BACKEND_PREDICT_URL, json=payload)
     resp.raise_for_status()
     data = resp.json()
     if isinstance(data, dict) and 'prediction' in data:
