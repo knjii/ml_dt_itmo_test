@@ -1,6 +1,6 @@
 lgbm_model_path: "artifacts/lgbm_model_jl.pkl"
 
-using_docker: True
+using_docker: False
 
 using_server: False
 

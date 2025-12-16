@@ -18,10 +18,8 @@ test_df.reset_index(inplace=True)
 y_true = test_df["Response"]
 
 preds = []
-
 for i, row in test_df.drop(columns=["id", "Response"]).iterrows():
     r = requests.post(BACKEND_PREDICT_URL, json=row.to_dict())
-    print(r.status_code)
     r = r.json()
     preds.append(1 if r["prediction"].strip() == "ДА" else 0)
 
